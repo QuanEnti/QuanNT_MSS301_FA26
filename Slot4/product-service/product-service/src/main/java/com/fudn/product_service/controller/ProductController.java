@@ -51,24 +51,20 @@ public class ProductController {
     //          @PathVariable String id,
     //          @RequestBody ProductRequest productRequest) { ... }
     // ==========================================================
-    // TODO: viết endpoint update tại đây
+    // TODO 3 — PUT /api/products/{id} — Update sản phẩm
+    @PutMapping("/{id}")
+    public ProductResponse updateProduct(@PathVariable String id,
+                                         @RequestBody ProductRequest productRequest) {
+        return productService.updateProduct(id, productRequest);
+        // Status 200 OK — Spring mặc định khi method return non-void
+        // Khi service throw ProductNotFoundException → GlobalExceptionHandler bắt → 404
+    }
 
-
-    // ==========================================================
-    // TODO 4 — Endpoint DELETE sản phẩm
-    // ----------------------------------------------------------
-    // YÊU CẦU:
-    //   - HTTP method : DELETE
-    //   - URL path   : /api/products/{id}
-    //   - Path var   : id  (String)
-    //   - Return     : void
-    //   - Status     : 204 NO CONTENT  (dùng @ResponseStatus)
-    //   - Khi service throw ProductNotFoundException -> 404
-    //
-    // GỢI Ý ANNOTATION:
-    //   @DeleteMapping("/{id}")
-    //   @ResponseStatus(HttpStatus.NO_CONTENT)
-    //   public void deleteProduct(@PathVariable String id) { ... }
-    // ==========================================================
-    // TODO: viết endpoint delete tại đây
+    // TODO 4 — DELETE /api/products/{id} — Xoá sản phẩm
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)    // 204 No Content khi xoá thành công
+    public void deleteProduct(@PathVariable String id) {
+        productService.deleteProduct(id);
+        // Khi service throw ProductNotFoundException → GlobalExceptionHandler bắt → 404
+    }
 }
