@@ -62,10 +62,21 @@ public class ProductService {
     //   - Đừng tạo Product mới — phải update đúng record cũ để không bị tạo id khác
     // ==========================================================
     public ProductResponse updateProduct(String id, ProductRequest productRequest) {
-        // TODO: viết logic update tại đây
+        // TODO 1 — tìm product theo id, nếu không thấy throw 404
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException(id));
 
-        throw new UnsupportedOperationException(
-                "TODO: Sinh vien chua implement updateProduct()");
+        // Cập nhật 3 field — KHÔNG tạo Product mới để tránh sinh id mới
+        product.setName(productRequest.getName());
+        product.setDescription(productRequest.getDescription());
+        product.setPrice(productRequest.getPrice());
+
+        // Lưu lại vào MongoDB
+        Product updated = productRepository.save(product);
+        log.info("Product {} updated.", updated.getId());
+
+        return new ProductResponse(updated.getId(), updated.getName(),
+                updated.getDescription(), updated.getPrice());
     }
 
     // ==========================================================
@@ -83,8 +94,13 @@ public class ProductService {
     //     sẽ "âm thầm thành công" khi xoá id không tồn tại -> không trả 404.
     // ==========================================================
     public void deleteProduct(String id) {
-        // TODO: viết logic delete tại đây
-        throw new UnsupportedOperationException(
-                "TODO: Sinh vien chua implement deleteProduct()");
+        // TODO 2 — PHẢI kiểm tra tồn tại trước khi xoá
+        // Spring Data deleteById() "âm thầm thành công" nếu id không tồn tại
+        // → không trả 404 nếu không có check này
+        if (!productRepository.existsById(id)) {
+            throw new ProductNotFoundException(id);
+        }
+        productRepository.deleteById(id);
+        log.info("Product {} deleted.", id);
     }
 }
