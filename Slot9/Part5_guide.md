@@ -69,8 +69,12 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.servers.Server;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class OpenAPIConfig {
@@ -78,8 +82,12 @@ public class OpenAPIConfig {
     private static final String BEARER_AUTH = "bearerAuth";
 
     @Bean
-    public OpenAPI productServiceAPI() {
+    public OpenAPI productServiceAPI(
+            @Value("${api.gateway.url:http://localhost:9000}") String gatewayUrl) {
         return new OpenAPI()
+                .servers(List.of(new Server()
+                        .url(gatewayUrl)
+                        .description("API Gateway")))
                 .components(new Components().addSecuritySchemes(BEARER_AUTH,
                         new SecurityScheme()
                                 .type(SecurityScheme.Type.HTTP)
@@ -97,7 +105,7 @@ public class OpenAPIConfig {
 }
 ```
 
-**Điểm cốt yếu:** `title("Product Service API")` và `version("v0.0.1")` — test kiểm tra chính xác 2 giá trị này. `bearerAuth` tạo nút **Authorize** để Swagger UI gửi JWT khi gọi API qua Gateway.
+**Điểm cốt yếu:** `title("Product Service API")` và `version("v0.0.1")` — test kiểm tra chính xác 2 giá trị này. `servers` buộc thao tác **Try it out** đi qua Gateway, còn `bearerAuth` tạo nút **Authorize** để gửi JWT.
 
 ### TODO DOC-4 · TẠO `product-service/src/main/java/com/fudn/product_service/config/CorsConfig.java`
 
@@ -330,7 +338,12 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:9000"));
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:9000",
+                "http://localhost:8080",
+                "http://localhost:8081",
+                "http://localhost:8082"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
