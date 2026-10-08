@@ -27,6 +27,7 @@ Keycloak (:8181)             ← Authorization Server (cấp JWT)
 
 ```bash
 # 1. Khởi động tất cả infrastructure (MongoDB, MySQL, Keycloak)
+cd ShoppingServices
 docker compose up -d
 
 # 2. Khởi động từng service theo thứ tự (mỗi terminal riêng)
@@ -79,12 +80,12 @@ Mở `product-service/pom.xml`, tìm comment `TODO DOC-1` và thêm 2 dependenci
 <dependency>
     <groupId>org.springdoc</groupId>
     <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-    <version>2.5.0</version>
+    <version>3.1.1</version>
 </dependency>
 <dependency>
     <groupId>org.springdoc</groupId>
     <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
-    <version>2.5.0</version>
+    <version>3.1.1</version>
 </dependency>
 ```
 
@@ -99,24 +100,35 @@ springdoc.api-docs.path=/api-docs
 
 #### TODO DOC-3 · **TẠO MỚI** `config/OpenAPIConfig.java`
 
-Tạo file mới tại `product-service/src/main/java/com/fudn/productservice/config/OpenAPIConfig.java`:
+Tạo file mới tại `product-service/src/main/java/com/fudn/product_service/config/OpenAPIConfig.java`:
 
 ```java
-package com.fudn.productservice.config;
+package com.fudn.product_service.config;
 
 import io.swagger.v3.oas.models.ExternalDocumentation;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class OpenAPIConfig {
 
+    private static final String BEARER_AUTH = "bearerAuth";
+
     @Bean
     public OpenAPI productServiceAPI() {
         return new OpenAPI()
+                .components(new Components().addSecuritySchemes(BEARER_AUTH,
+                        new SecurityScheme()
+                                .type(SecurityScheme.Type.HTTP)
+                                .scheme("bearer")
+                                .bearerFormat("JWT")))
+                .addSecurityItem(new SecurityRequirement().addList(BEARER_AUTH))
                 .info(new Info().title("Product Service API")
                         .description("This is the REST API for Product Service")
                         .version("v0.0.1")
@@ -128,12 +140,14 @@ public class OpenAPIConfig {
 }
 ```
 
+`bearerAuth` làm Swagger UI hiển thị nút **Authorize** và gửi JWT khi thử API qua Gateway. Inventory Service và Order Service dùng cùng cấu hình security scheme.
+
 #### TODO DOC-4 · **TẠO MỚI** `config/CorsConfig.java`
 
-Tạo file mới tại `product-service/src/main/java/com/fudn/productservice/config/CorsConfig.java`:
+Tạo file mới tại `product-service/src/main/java/com/fudn/product_service/config/CorsConfig.java`:
 
 ```java
-package com.fudn.productservice.config;
+package com.fudn.product_service.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -145,9 +159,9 @@ class CorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedMethods("*")
-                .allowedHeaders("*")
-                .allowedOriginPatterns("*")
+                .allowedMethods("GET", "POST")
+                .allowedHeaders("Authorization", "Content-Type")
+                .allowedOrigins("http://localhost:9000")
                 .allowCredentials(false);
     }
 }
@@ -256,7 +270,7 @@ public RouterFunction<ServerResponse> productServiceSwaggerRoute() {
     return route("product_service_swagger")
             .route(path("/aggregate/product-service/v3/api-docs"),
                    http("http://localhost:8080"))
-            .filter(setPath("/api-docs"))
+            .before(setPath("/api-docs"))
             .build();
 }
 
@@ -266,7 +280,7 @@ public RouterFunction<ServerResponse> orderServiceSwaggerRoute() {
     return route("order_service_swagger")
             .route(path("/aggregate/order-service/v3/api-docs"),
                    http("http://localhost:8081"))
-            .filter(setPath("/api-docs"))
+            .before(setPath("/api-docs"))
             .build();
 }
 
@@ -276,7 +290,7 @@ public RouterFunction<ServerResponse> inventoryServiceSwaggerRoute() {
     return route("inventory_service_swagger")
             .route(path("/aggregate/inventory-service/v3/api-docs"),
                    http("http://localhost:8082"))
-            .filter(setPath("/api-docs"))
+            .before(setPath("/api-docs"))
             .build();
 }
 ```
@@ -287,7 +301,8 @@ Mở `api-gateway/src/main/java/com/fudn/gateway/config/SecurityConfig.java`, ho
 
 **DOC-16a** — Khai báo `freeResourceUrls`:
 ```java
-private final String[] freeResourceUrls = {
+private static final String[] FREE_RESOURCE_URLS = {
+    "/actuator/health", "/actuator/health/**",
     "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**",
     "/swagger-resources/**", "/aggregate/**"
 };
@@ -298,8 +313,11 @@ private final String[] freeResourceUrls = {
 @Bean
 public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     return http
+            .csrf(AbstractHttpConfigurer::disable)
+            .sessionManagement(session ->
+                    session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                    .requestMatchers(freeResourceUrls).permitAll()
+                    .requestMatchers(FREE_RESOURCE_URLS).permitAll()
                     .anyRequest().authenticated())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
@@ -312,9 +330,9 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
 @Bean
 CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOrigins(List.of("*"));
+    configuration.setAllowedOrigins(List.of("http://localhost:9000"));
     configuration.setAllowedMethods(Arrays.asList("GET", "POST"));
-    configuration.setAllowedHeaders(List.of("*"));
+    configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", configuration);
     return source;
@@ -350,7 +368,7 @@ cd api-gateway && ./mvnw test
 | `http://localhost:8082/swagger-ui.html` | Swagger UI của Inventory Service |
 | `http://localhost:9000/swagger-ui.html` | Swagger UI tổng hợp (dropdown 3 services) |
 | `http://localhost:9000/swagger-ui.html` không cần JWT | ✅ Truy cập tự do |
-| `http://localhost:9000/api/product` không có JWT | ❌ `401 Unauthorized` |
+| `http://localhost:9000/api/products` không có JWT | ❌ `401 Unauthorized` |
 
 ---
 
