@@ -70,6 +70,21 @@ API Gateway sẽ tổng hợp docs của cả 3 services tại `http://localhost
 
 ---
 
+### Quy tắc commit
+
+Làm và commit riêng từng `DOC-n` theo cú pháp `type(scope): nội dung commit`. Danh sách đầy đủ lệnh `git add` và `git commit` cho `DOC-1` đến `DOC-16` nằm trong [`Part5_guide.md`](Part5_guide.md#quy-trình-commit-theo-từng-todo).
+
+Ví dụ:
+
+```bash
+git add product-service/pom.xml
+git commit -m "chore(product): add Springdoc OpenAPI dependencies"
+```
+
+Không dùng `git add .`; chỉ stage file thuộc TODO vừa hoàn thành.
+
+---
+
 ### NHÓM A – Product Service (`product-service/`)
 
 #### TODO DOC-1 · `pom.xml` — Thêm Springdoc dependencies

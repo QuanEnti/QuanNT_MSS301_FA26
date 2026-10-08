@@ -29,6 +29,97 @@ Part 5 thêm **API Documentation** vào hệ thống microservices đã có từ
 
 ---
 
+## Quy trình commit theo từng TODO
+
+Thực hiện lần lượt từng TODO. Sau khi sửa xong và kiểm tra TODO hiện tại, chỉ stage đúng file liên quan rồi mới commit. Các lệnh dưới đây được chạy từ thư mục `Slot9/ShoppingServices`.
+
+Không dùng `git add .` vì lệnh đó có thể đưa thay đổi của TODO tiếp theo hoặc file không liên quan vào cùng commit.
+
+```bash
+# DOC-1
+git add product-service/pom.xml
+git commit -m "chore(product): add Springdoc OpenAPI dependencies"
+
+# DOC-2
+git add product-service/src/main/resources/application.properties
+git commit -m "feat(product): configure Swagger UI and API docs paths"
+
+# DOC-3
+git add product-service/src/main/java/com/fudn/product_service/config/OpenAPIConfig.java
+git commit -m "feat(product): add OpenAPI metadata configuration"
+
+# DOC-4
+git add product-service/src/main/java/com/fudn/product_service/config/CorsConfig.java
+git commit -m "feat(product): configure CORS for Swagger UI"
+
+# DOC-5
+git add inventory-service/pom.xml
+git commit -m "chore(inventory): add Springdoc OpenAPI dependencies"
+
+# DOC-6
+git add inventory-service/src/main/resources/application.properties
+git commit -m "feat(inventory): configure Swagger UI and API docs paths"
+
+# DOC-7
+git add inventory-service/src/main/java/com/fudn/inventoryservice/config/OpenAPIConfig.java
+git commit -m "feat(inventory): add OpenAPI metadata configuration"
+
+# DOC-8
+git add inventory-service/src/main/java/com/fudn/inventoryservice/config/CorsConfig.java
+git commit -m "feat(inventory): configure CORS for Swagger UI"
+
+# DOC-9
+git add order-service/pom.xml
+git commit -m "chore(order): add Springdoc OpenAPI dependencies"
+
+# DOC-10
+git add order-service/src/main/resources/application.properties
+git commit -m "feat(order): configure Swagger UI and API docs paths"
+
+# DOC-11
+git add order-service/src/main/java/com/fudn/orderservice/config/OpenAPIConfig.java
+git commit -m "feat(order): add OpenAPI metadata configuration"
+
+# DOC-12
+git add order-service/src/main/java/com/fudn/orderservice/config/CorsConfig.java
+git commit -m "feat(order): configure CORS for Swagger UI"
+
+# DOC-13
+git add api-gateway/pom.xml
+git commit -m "chore(gateway): add Springdoc OpenAPI dependencies"
+
+# DOC-14
+git add api-gateway/src/main/resources/application.properties
+git commit -m "feat(gateway): configure aggregated Swagger UI"
+
+# DOC-15
+git add api-gateway/src/main/java/com/fudn/gateway/routes/Routes.java
+git commit -m "feat(gateway): route aggregated OpenAPI specifications"
+
+# DOC-16
+git add api-gateway/src/main/java/com/fudn/gateway/config/SecurityConfig.java
+git commit -m "feat(gateway): permit Swagger resources"
+```
+
+Mỗi commit tuân theo cú pháp:
+
+```text
+type(scope): nội dung commit
+```
+
+- `type`: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, ...
+- `scope`: phần bị thay đổi, ví dụ `product`, `inventory`, `order`, `gateway`.
+- Nội dung dùng động từ hiện tại, ngắn gọn và mô tả đúng một TODO.
+
+Sau mỗi commit, kiểm tra lại bằng:
+
+```bash
+git show --stat --oneline HEAD
+git status --short
+```
+
+---
+
 ## Lời giải — NHÓM A: Product Service
 
 ### TODO DOC-1 · `product-service/pom.xml`
