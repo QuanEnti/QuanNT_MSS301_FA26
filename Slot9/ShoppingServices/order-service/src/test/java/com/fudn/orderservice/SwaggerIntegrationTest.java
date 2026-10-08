@@ -37,7 +37,8 @@ class SwaggerIntegrationTest {
         mockMvc.perform(get("/api-docs"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.info.title").value("Order Service API"))
-                .andExpect(jsonPath("$.info.version").value("v0.0.1"));
+                .andExpect(jsonPath("$.info.version").value("v0.0.1"))
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"));
     }
 
     @Test
