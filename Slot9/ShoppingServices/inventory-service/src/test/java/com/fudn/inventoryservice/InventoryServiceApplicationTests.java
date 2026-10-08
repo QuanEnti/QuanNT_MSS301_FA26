@@ -40,7 +40,7 @@ class InventoryServiceApplicationTests {
 
     @Container
     @ServiceConnection
-    static MySQLContainer<?> mySQLContainer = new MySQLContainer<>("mysql:8.3.0");
+    static MySQLContainer mySQLContainer = new MySQLContainer("mysql:8.3.0");
 
     @LocalServerPort
     private Integer port;

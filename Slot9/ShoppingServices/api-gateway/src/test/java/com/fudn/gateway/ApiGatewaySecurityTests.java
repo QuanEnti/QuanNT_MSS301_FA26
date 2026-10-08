@@ -1,8 +1,9 @@
 package com.fudn.gateway;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -10,7 +11,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.wiremock.spring.ConfigureWireMock;
 import org.wiremock.spring.EnableWireMock;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -20,11 +28,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@EnableWireMock({
-        @ConfigureWireMock(port = 8080, name = "product-service"),
-        @ConfigureWireMock(port = 8081, name = "order-service"),
-        @ConfigureWireMock(port = 8082, name = "inventory-service")
-})
+@EnableWireMock(@ConfigureWireMock(
+        name = "shopping-services",
+        baseUrlProperties = {
+                "services.product.url",
+                "services.order.url",
+                "services.inventory.url"
+        }
+))
 class ApiGatewaySecurityTests {
 
     @Autowired
@@ -48,7 +59,7 @@ class ApiGatewaySecurityTests {
 
     @Test
     void requestWithValidJwtShouldBeRoutedToProductService() throws Exception {
-        stubFor(get(urlEqualTo("/api/products"))
+        stubFor(WireMock.get(urlEqualTo("/api/products"))
                 .willReturn(aResponse()
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")
@@ -63,7 +74,7 @@ class ApiGatewaySecurityTests {
 
     @Test
     void postOrderWithValidJwtShouldBeRoutedToOrderService() throws Exception {
-        stubFor(post(urlEqualTo("/api/order"))
+        stubFor(WireMock.post(urlEqualTo("/api/order"))
                 .willReturn(aResponse()
                         .withStatus(201)
                         .withBody("Order Placed Successfully")));
@@ -80,7 +91,9 @@ class ApiGatewaySecurityTests {
 
     @Test
     void inventoryRouteShouldForwardQueryParams() throws Exception {
-        stubFor(get(urlEqualTo("/api/inventory?skuCode=iphone_15&quantity=1"))
+        stubFor(WireMock.get(urlPathEqualTo("/api/inventory"))
+                .withQueryParam("skuCode", equalTo("iphone_15"))
+                .withQueryParam("quantity", equalTo("1"))
                 .willReturn(aResponse()
                         .withStatus(200)
                         .withBody("true")));
