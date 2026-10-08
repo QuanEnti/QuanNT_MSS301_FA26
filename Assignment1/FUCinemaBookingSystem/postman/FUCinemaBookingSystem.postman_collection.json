@@ -1220,7 +1220,7 @@
           "request": {
             "method": "DELETE",
             "header": [],
-            "url": "{{gateway}}/api/genres/{{seedGenreActionId}}",
+            "url": "{{gateway}}/api/genres/{{seedGenreScifiId}}",
             "auth": {
               "type": "bearer",
               "bearer": [
