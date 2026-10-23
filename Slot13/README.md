@@ -2,6 +2,14 @@
 
 > Bài làm được triển khai tuần tự theo TODO-0 đến TODO-11; mỗi TODO có một commit riêng để thuận tiện đối chiếu lịch sử Git.
 
+## Trạng thái bài làm
+
+- Đã hoàn thành `TODO-0` đến `TODO-11` trong ba Spring Boot service độc lập.
+- Build/test toàn bộ bằng `mvnw.cmd test` tại thư mục `Slot13`.
+- Chạy hệ thống bằng `docker-compose up -d --build`.
+- Import [Saga_Postman_Collection.json](Saga_Postman_Collection.json) để chạy các kịch bản Postman.
+- Kết quả đã kiểm chứng thực tế được ghi tại [TEST_RESULTS.md](TEST_RESULTS.md).
+
 > **Chapter 06 – Transactions in Microservices** 
 > Stack: **Java 21 · Spring Boot 4.1.1 (Spring Framework 7) · Spring MVC · RestClient · Spring Data JPA · Spring Data MongoDB · Lombok · Docker Compose · Postman**.
 > **Database per service** – mỗi service một loại database riêng, chạy trong Docker:
