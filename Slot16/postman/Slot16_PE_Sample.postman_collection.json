@@ -1,0 +1,217 @@
+{
+  "info": {
+    "_postman_id": "5865ec4d-0dc3-4cd1-af3d-2e2224a43687",
+    "name": "Slot16 MSS301 PE Sample",
+    "description": "End-to-end checks through QuanNTMediaGateway.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "newUsername", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "postId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 - Create active creator",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "pm.collectionVariables.set('newUsername', 'creator_' + Date.now());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.test('status 1 and ACTIVE', () => { pm.expect(body.status).to.eql(1); pm.expect(body.data.status).to.eql('ACTIVE'); });",
+              "pm.collectionVariables.set('userId', body.data.userId);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{newUsername}}\",\n  \"email\": \"postman@example.com\",\n  \"role\": \"CREATOR\",\n  \"ratePerPost\": 250000,\n  \"maxDailyPosts\": 4,\n  \"level\": 1\n}"
+        },
+        "url": "{{baseUrl}}/api/users"
+      }
+    },
+    {
+      "name": "02 - Reject duplicate username",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('HTTP 226', () => pm.response.to.have.status(226));",
+          "pm.test('status 3', () => pm.expect(pm.response.json().status).to.eql(3));"
+        ] }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{newUsername}}\",\n  \"email\": \"duplicate@example.com\",\n  \"role\": \"CREATOR\",\n  \"ratePerPost\": 250000,\n  \"maxDailyPosts\": 4,\n  \"level\": 1\n}"
+        },
+        "url": "{{baseUrl}}/api/users"
+      }
+    },
+    {
+      "name": "03 - Get user detail",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+          "pm.test('returns generated user', () => pm.expect(String(pm.response.json().data.userId)).to.eql(String(pm.collectionVariables.get('userId'))));"
+        ] }
+      }],
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/users/{{userId}}" }
+    },
+    {
+      "name": "04 - Partial update user",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+          "pm.test('email updated', () => pm.expect(pm.response.json().data.email).to.eql('updated@example.com'));"
+        ] }
+      }],
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"updated@example.com\"\n}" },
+        "url": "{{baseUrl}}/api/users/{{userId}}"
+      }
+    },
+    {
+      "name": "05 - Filter active creators",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+          "pm.test('paged response', () => pm.expect(pm.response.json().data.content).to.be.an('array'));"
+        ] }
+      }],
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/users?page=0&size=10&role=CREATOR&status=ACTIVE" }
+    },
+    {
+      "name": "06 - Reject oversized page",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('HTTP 406', () => pm.response.to.have.status(406));",
+          "pm.test('status 2', () => pm.expect(pm.response.json().status).to.eql(2));"
+        ] }
+      }],
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/users?size=101" }
+    },
+    {
+      "name": "07 - Create scheduled post",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+          "const body = pm.response.json();",
+          "pm.test('scheduled and calculated', () => { pm.expect(body.data.status).to.eql('SCHEDULED'); pm.expect(body.data.totalCost).to.eql(750000); });",
+          "pm.collectionVariables.set('postId', body.data.postId);"
+        ] }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"advertiserName\": \"Shop ABC\",\n  \"advertiserEmail\": \"ads@example.com\",\n  \"advertiserPhone\": \"0900000000\",\n  \"startDate\": \"25/07/2026\",\n  \"endDate\": \"28/07/2026\",\n  \"numberOfPosts\": 2,\n  \"userId\": {{userId}}\n}"
+        },
+        "url": "{{baseUrl}}/api/posts"
+      }
+    },
+    {
+      "name": "08 - Get post with user detail",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+          "pm.test('embeds user', () => pm.expect(pm.response.json().data.user.username).to.eql(pm.collectionVariables.get('newUsername')));"
+        ] }
+      }],
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/posts/{{postId}}" }
+    },
+    {
+      "name": "09 - Partial update and recalculate post",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+          "pm.test('cost recalculated', () => pm.expect(pm.response.json().data.totalCost).to.eql(500000));"
+        ] }
+      }],
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"endDate\": \"27/07/2026\",\n  \"numberOfPosts\": 3\n}" },
+        "url": "{{baseUrl}}/api/posts/{{postId}}"
+      }
+    },
+    {
+      "name": "10 - Filter scheduled posts",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+          "pm.test('paged response', () => pm.expect(pm.response.json().data.content).to.be.an('array'));"
+        ] }
+      }],
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/posts?page=0&size=10&advertiserName=Shop&status=SCHEDULED" }
+    },
+    {
+      "name": "11 - Cancel post",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+          "pm.test('status 1 and no data', () => { const body = pm.response.json(); pm.expect(body.status).to.eql(1); pm.expect(body.data).to.eql(null); });"
+        ] }
+      }],
+      "request": { "method": "DELETE", "url": "{{baseUrl}}/api/posts/{{postId}}" }
+    },
+    {
+      "name": "12 - Deactivate generated user",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+          "pm.test('status 1', () => pm.expect(pm.response.json().status).to.eql(1));"
+        ] }
+      }],
+      "request": { "method": "DELETE", "url": "{{baseUrl}}/api/users/{{userId}}" }
+    },
+    {
+      "name": "13 - Reject post for inactive user",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+          "pm.test('status 5', () => pm.expect(pm.response.json().status).to.eql(5));"
+        ] }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"advertiserName\": \"Shop XYZ\",\n  \"advertiserEmail\": \"xyz@example.com\",\n  \"advertiserPhone\": \"0900000001\",\n  \"startDate\": \"01/08/2026\",\n  \"endDate\": \"02/08/2026\",\n  \"numberOfPosts\": 1,\n  \"userId\": {{userId}}\n}"
+        },
+        "url": "{{baseUrl}}/api/posts"
+      }
+    }
+  ]
+}
