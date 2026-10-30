@@ -13,7 +13,7 @@ All services target JDK 21. The two data services share the SQL Server database
 ## Implementation TODOs
 
 - [x] TODO-0: add the SQL Server database schema and seed data
-- [ ] TODO-1: bootstrap UserService and map the user entity
+- [x] TODO-1: bootstrap UserService and map the user entity
 - [ ] TODO-2: add user DTOs and repository
 - [ ] TODO-3: implement user business operations
 - [ ] TODO-4: expose and configure the UserService API
