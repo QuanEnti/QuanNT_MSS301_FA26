@@ -17,10 +17,12 @@ public class UserDTO {
     private Long userId;
 
     @NotBlank(message = "username must not be blank", groups = OnCreate.class)
+    @Pattern(regexp = ".*\\S.*", message = "username must not be blank")
     @Size(max = 30, message = "username must not exceed 30 characters")
     private String username;
 
     @NotBlank(message = "email must not be blank", groups = OnCreate.class)
+    @Pattern(regexp = ".*\\S.*", message = "email must not be blank")
     @Email(message = "email must be valid")
     @Size(max = 100, message = "email must not exceed 100 characters")
     private String email;
