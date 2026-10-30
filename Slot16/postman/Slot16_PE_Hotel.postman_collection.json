@@ -1,0 +1,119 @@
+{
+  "info": {
+    "name": "Slot16 PE Hotel - Room Reservation Gateway",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "roomNumber", "value": "" },
+    { "key": "roomId", "value": "" },
+    { "key": "reservationId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 - List seeded rooms",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/rooms?page=0&size=10" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Room list is returned', function () { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql(1); });"
+      ] } }]
+    },
+    {
+      "name": "02 - Create available room",
+      "event": [
+        { "listen": "prerequest", "script": { "exec": ["pm.collectionVariables.set('roomNumber', 'T' + Date.now());"] } },
+        { "listen": "test", "script": { "exec": [
+          "pm.test('Room is created with AVAILABLE status', function () { const body = pm.response.json(); pm.response.to.have.status(201); pm.expect(body.status).to.eql(1); pm.expect(body.data.status).to.eql('AVAILABLE'); pm.collectionVariables.set('roomId', body.data.roomId); });"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"roomNumber\": \"{{roomNumber}}\",\n  \"roomType\": \"DOUBLE\",\n  \"pricePerNight\": 700000,\n  \"capacity\": 2,\n  \"floor\": 5\n}" },
+        "url": "{{baseUrl}}/api/rooms"
+      }
+    },
+    {
+      "name": "03 - Reject duplicate room number",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"roomNumber\": \"{{roomNumber}}\",\n  \"roomType\": \"DOUBLE\",\n  \"pricePerNight\": 700000,\n  \"capacity\": 2,\n  \"floor\": 5\n}" },
+        "url": "{{baseUrl}}/api/rooms"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Duplicate uses HTTP 226 and business status 3', function () { pm.response.to.have.status(226); pm.expect(pm.response.json().status).to.eql(3); });"
+      ] } }]
+    },
+    {
+      "name": "04 - Partially update room",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"pricePerNight\": 750000\n}" },
+        "url": "{{baseUrl}}/api/rooms/{{roomId}}"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Only the supplied room field changes', function () { const body = pm.response.json(); pm.response.to.have.status(200); pm.expect(body.status).to.eql(1); pm.expect(body.data.pricePerNight).to.eql(750000); });"
+      ] } }]
+    },
+    {
+      "name": "05 - Filter rooms",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/rooms?page=0&size=10&roomType=DOUBLE&status=AVAILABLE" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Room filters and pagination work', function () { const body = pm.response.json(); pm.response.to.have.status(200); pm.expect(body.status).to.eql(1); pm.expect(body.data.content).to.be.an('array'); });"
+      ] } }]
+    },
+    {
+      "name": "06 - Create reservation",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"guestName\": \"Quan Nguyen\",\n  \"guestEmail\": \"quan@example.com\",\n  \"guestPhone\": \"0900000000\",\n  \"checkInDate\": \"01/12/2026\",\n  \"checkOutDate\": \"04/12/2026\",\n  \"numberOfGuests\": 2,\n  \"roomId\": {{roomId}}\n}" },
+        "url": "{{baseUrl}}/api/reservations"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Reservation is confirmed and total is calculated', function () { const body = pm.response.json(); pm.response.to.have.status(201); pm.expect(body.status).to.eql(1); pm.expect(body.data.status).to.eql('CONFIRMED'); pm.expect(body.data.totalAmount).to.eql(2250000); pm.collectionVariables.set('reservationId', body.data.reservationId); });"
+      ] } }]
+    },
+    {
+      "name": "07 - Get reservation detail with room",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/reservations/{{reservationId}}" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('ReservationDetailDTO embeds RoomDTO', function () { const body = pm.response.json(); pm.response.to.have.status(200); pm.expect(body.status).to.eql(1); pm.expect(body.data.room.roomId).to.eql(Number(pm.collectionVariables.get('roomId'))); });"
+      ] } }]
+    },
+    {
+      "name": "08 - Partially update reservation",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"checkOutDate\": \"05/12/2026\"\n}" },
+        "url": "{{baseUrl}}/api/reservations/{{reservationId}}"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Reservation amount is recalculated', function () { const body = pm.response.json(); pm.response.to.have.status(200); pm.expect(body.status).to.eql(1); pm.expect(body.data.totalAmount).to.eql(3000000); });"
+      ] } }]
+    },
+    {
+      "name": "09 - Filter reservations",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/reservations?page=0&size=10&guestName=Quan&status=CONFIRMED" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Reservation filters and details work', function () { const body = pm.response.json(); pm.response.to.have.status(200); pm.expect(body.status).to.eql(1); pm.expect(body.data.content).to.be.an('array'); });"
+      ] } }]
+    },
+    {
+      "name": "10 - Cancel reservation",
+      "request": { "method": "DELETE", "url": "{{baseUrl}}/api/reservations/{{reservationId}}" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Reservation is cancelled without deleting it', function () { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql(1); });"
+      ] } }]
+    },
+    {
+      "name": "11 - Set room to maintenance",
+      "request": { "method": "DELETE", "url": "{{baseUrl}}/api/rooms/{{roomId}}" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Room is moved to maintenance', function () { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql(1); });"
+      ] } }]
+    }
+  ]
+}
