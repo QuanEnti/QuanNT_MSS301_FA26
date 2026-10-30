@@ -17,7 +17,7 @@ All services target JDK 21. The two data services share the SQL Server database
 - [x] TODO-2: add user DTOs and repository
 - [x] TODO-3: implement user business operations
 - [x] TODO-4: expose and configure the UserService API
-- [ ] TODO-5: bootstrap PostService and map the post entity
+- [x] TODO-5: bootstrap PostService and map the post entity
 - [ ] TODO-6: add post DTOs and repository
 - [ ] TODO-7: connect PostService to UserService with OpenFeign
 - [ ] TODO-8: implement post business operations
