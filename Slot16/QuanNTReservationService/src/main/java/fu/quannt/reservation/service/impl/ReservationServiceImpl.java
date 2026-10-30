@@ -24,6 +24,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -113,7 +114,11 @@ public class ReservationServiceImpl implements ReservationService {
     public ApiResponseDTO getReservation(Long reservationId) {
         Reservation reservation = reservationRepository.findById(reservationId).orElse(null);
         if (reservation == null) return ApiResponseDTO.error(4, "Reservation is not found");
-        return ApiResponseDTO.success("Successful", toDetailDTO(reservation));
+        RoomResult roomResult = findRoom(reservation.getRoomId());
+        if (roomResult.room() == null) {
+            return ApiResponseDTO.error(0, "Failed to get room from RoomService");
+        }
+        return ApiResponseDTO.success("Successful", toDetailDTO(reservation, roomResult.room()));
     }
 
     @Override
@@ -141,8 +146,14 @@ public class ReservationServiceImpl implements ReservationService {
         String nameFilter = guestName == null || guestName.isBlank() ? null : guestName;
         Page<Reservation> result = reservationRepository.search(nameFilter, statusFilter,
                 PageRequest.of(page, size, Sort.by("reservationId").ascending()));
-        List<ReservationDetailDTO> reservations = result.getContent().stream()
-                .map(this::toDetailDTO).toList();
+        List<ReservationDetailDTO> reservations = new ArrayList<>();
+        for (Reservation reservation : result.getContent()) {
+            RoomResult roomResult = findRoom(reservation.getRoomId());
+            if (roomResult.room() == null) {
+                return ApiResponseDTO.error(0, "Failed to get room from RoomService");
+            }
+            reservations.add(toDetailDTO(reservation, roomResult.room()));
+        }
         return ApiResponseDTO.success("Successful", new PageDTO(
                 result.getSize(), result.getNumber(), result.getTotalPages(),
                 result.getTotalElements(), result.isFirst(), result.isLast(), reservations));
@@ -165,10 +176,10 @@ public class ReservationServiceImpl implements ReservationService {
         }
     }
 
-    private ReservationDetailDTO toDetailDTO(Reservation reservation) {
+    private ReservationDetailDTO toDetailDTO(Reservation reservation, RoomDTO room) {
         ReservationDetailDTO dto = new ReservationDetailDTO();
         copyReservation(reservation, dto);
-        dto.setRoom(findRoom(reservation.getRoomId()).room());
+        dto.setRoom(room);
         return dto;
     }
 

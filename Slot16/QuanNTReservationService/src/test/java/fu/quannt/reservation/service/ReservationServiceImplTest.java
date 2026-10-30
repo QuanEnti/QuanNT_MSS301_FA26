@@ -90,6 +90,11 @@ class ReservationServiceImplTest {
 
         assertThat(detail.getRoom().getRoomNumber()).isEqualTo("101");
         assertThat(detail.getReservationId()).isEqualTo(10L);
+
+        RoomApiResponseDTO failedLookup = new RoomApiResponseDTO();
+        failedLookup.setStatus(0);
+        when(roomClient.getRoom(1L)).thenReturn(failedLookup);
+        assertThat(service.getReservation(10L).getStatus()).isEqualTo(0);
     }
 
     @Test
