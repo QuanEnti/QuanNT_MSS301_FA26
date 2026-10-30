@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
@@ -17,15 +18,18 @@ public class ReservationDTO {
     private Long reservationId;
 
     @NotBlank(groups = OnCreate.class, message = "guestName is required")
+    @Pattern(regexp = ".*\\S.*", message = "guestName must not be blank")
     @Size(max = 100, message = "guestName must not exceed 100 characters")
     private String guestName;
 
     @NotBlank(groups = OnCreate.class, message = "guestEmail is required")
+    @Pattern(regexp = ".*\\S.*", message = "guestEmail must not be blank")
     @Email(message = "guestEmail must be valid")
     @Size(max = 100, message = "guestEmail must not exceed 100 characters")
     private String guestEmail;
 
     @NotBlank(groups = OnCreate.class, message = "guestPhone is required")
+    @Pattern(regexp = ".*\\S.*", message = "guestPhone must not be blank")
     @Size(max = 20, message = "guestPhone must not exceed 20 characters")
     private String guestPhone;
 

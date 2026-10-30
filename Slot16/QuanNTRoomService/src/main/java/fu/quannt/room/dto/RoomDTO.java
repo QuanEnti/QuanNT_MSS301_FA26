@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
@@ -16,6 +17,7 @@ public class RoomDTO {
     private Long roomId;
 
     @NotBlank(groups = OnCreate.class, message = "roomNumber is required")
+    @Pattern(regexp = ".*\\S.*", message = "roomNumber must not be blank")
     @Size(max = 20, message = "roomNumber must not exceed 20 characters")
     private String roomNumber;
 

@@ -16,5 +16,14 @@ class ReservationDTOValidationTest {
                 .extracting(violation -> violation.getPropertyPath().toString())
                 .contains("guestName", "guestEmail", "guestPhone", "checkInDate",
                         "checkOutDate", "numberOfGuests", "roomId");
+
+        ReservationDTO invalid = new ReservationDTO();
+        invalid.setGuestName("   ");
+        invalid.setGuestEmail("not-an-email");
+        invalid.setGuestPhone("   ");
+        invalid.setNumberOfGuests(11);
+        assertThat(validator.validate(invalid, OnCreate.class))
+                .extracting(violation -> violation.getPropertyPath().toString())
+                .contains("guestName", "guestEmail", "guestPhone", "numberOfGuests");
     }
 }
