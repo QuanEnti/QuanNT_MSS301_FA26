@@ -1,0 +1,9 @@
+# <type>(<scope>): <subject>
+#
+# <body: explain what and why; wrap at 72 characters>
+#
+# Refs: TODO-<number>
+#
+# Types: feat, fix, docs, refactor, test, chore, build, ci
+# Subject: imperative mood, lower case, no period, at most 50 characters
+

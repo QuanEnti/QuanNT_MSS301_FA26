@@ -1,0 +1,40 @@
+# Maven
+target/
+**/target/
+*.class
+*.jar
+*.war
+*.log
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Eclipse / STS
+.classpath
+.project
+.settings/
+bin/
+
+# VS Code
+.vscode/
+
+# Operating systems
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local configuration and secrets
+.env
+application-local.properties
+application-local.yml
+
+# Local databases
+*.db
+*.sqlite
+*.h2.mv.db
+*.h2.trace.db
+
