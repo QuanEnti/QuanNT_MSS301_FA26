@@ -1,0 +1,108 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: watch-management-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Watch@2026}"
+      MSSQL_PID: "Developer"
+    ports:
+      - "${MSSQL_PORT:-14330}:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  sqlserver-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: watch-management-sqlserver-init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Watch@2026}"
+    volumes:
+      - ./sqlserver/init.sql:/init.sql:ro
+    entrypoint:
+      - /bin/bash
+      - -c
+      - /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -i /init.sql
+    restart: "no"
+
+  account-service:
+    build: ./MSAccount_QuanNT
+    container_name: watch-management-account
+    depends_on:
+      sqlserver-init:
+        condition: service_completed_successfully
+    environment:
+      DB_HOST: sqlserver
+      MSSQL_PORT: 1433
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Watch@2026}"
+      ACCOUNT_DB: "${ACCOUNT_DB:-DBAccount}"
+      ACCOUNT_SERVICE_PORT: 8081
+    ports:
+      - "${ACCOUNT_SERVICE_PORT:-8081}:8081"
+    restart: unless-stopped
+
+  brand-service:
+    build: ./MSBrand_QuanNT
+    container_name: watch-management-brand
+    depends_on:
+      sqlserver-init:
+        condition: service_completed_successfully
+    environment:
+      DB_HOST: sqlserver
+      MSSQL_PORT: 1433
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Watch@2026}"
+      BRAND_DB: "${BRAND_DB:-DBBrand}"
+      BRAND_SERVICE_PORT: 8082
+    ports:
+      - "${BRAND_SERVICE_PORT:-8082}:8082"
+    restart: unless-stopped
+
+  watch-service:
+    build: ./MSWatch_QuanNT
+    container_name: watch-management-watch
+    depends_on:
+      sqlserver-init:
+        condition: service_completed_successfully
+      brand-service:
+        condition: service_started
+    environment:
+      DB_HOST: sqlserver
+      MSSQL_PORT: 1433
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Watch@2026}"
+      WATCH_DB: "${WATCH_DB:-DBWatch}"
+      WATCH_SERVICE_PORT: 8083
+      BRAND_SERVICE_URL: http://brand-service:8082
+    ports:
+      - "${WATCH_SERVICE_PORT:-8083}:8083"
+    restart: unless-stopped
+
+  api-gateway:
+    build: ./APIGateway_QuanNT
+    container_name: watch-management-gateway
+    depends_on:
+      account-service:
+        condition: service_started
+      brand-service:
+        condition: service_started
+      watch-service:
+        condition: service_started
+    environment:
+      API_GATEWAY_PORT: 9000
+      ACCOUNT_SERVICE_URL: http://account-service:8081
+      BRAND_SERVICE_URL: http://brand-service:8082
+      WATCH_SERVICE_URL: http://watch-service:8083
+    ports:
+      - "${API_GATEWAY_PORT:-9000}:9000"
+    restart: unless-stopped
+
+volumes:
+  sqlserver-data:
+
