@@ -1,0 +1,418 @@
+{
+  "info": {
+    "_postman_id": "e98d0739-a593-48c0-a29d-c095027ecabd",
+    "name": "MSS301 Assignment 02 - Watch Management",
+    "description": "API Gateway, authentication, Watch CRUD validation and Saga scenarios for QuanNT.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.environment.set('today', new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Public catalog",
+      "item": [
+        {
+          "name": "List watches without authentication",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/watches"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const watches = pm.response.json();",
+                  "pm.test('Seed contains 10 watches', () => pm.expect(watches.length).to.be.at.least(10));",
+                  "pm.test('CategoryName is included', () => pm.expect(watches[0].categoryName).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/categories"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Exactly 5 categories', () => pm.expect(pm.response.json()).to.have.length(5));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List brands",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/brands"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Exactly 5 brands', () => pm.expect(pm.response.json()).to.have.length(5));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Authentication",
+      "item": [
+        {
+          "name": "Login as Administrator",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"adminsys\",\n  \"password\": \"@1\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const login = pm.response.json();",
+                  "pm.test('Administrator role = 1', () => pm.expect(login.role).to.eql(1));",
+                  "pm.environment.set('adminToken', login.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login as Staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"staff02\",\n  \"password\": \"@1\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const login = pm.response.json();",
+                  "pm.test('Staff role = 2', () => pm.expect(login.role).to.eql(2));",
+                  "pm.environment.set('staffToken', login.accessToken);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Administrator Watch Saga",
+      "item": [
+        {
+          "name": "Reject create without authentication",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Unauthenticated Watch\",\n  \"categoryId\": 1,\n  \"brandId\": 1,\n  \"caseMaterial\": \"Steel\",\n  \"strapMaterial\": \"Leather\",\n  \"waterResistance\": \"100 meters\",\n  \"price\": 1000.00,\n  \"releaseDate\": \"{{today}}\",\n  \"stock\": 5\n}"
+            },
+            "url": "{{baseUrl}}/api/watches"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create watch as Administrator",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"QuanNT Automatic Diver\",\n  \"categoryId\": 1,\n  \"brandId\": 3,\n  \"caseMaterial\": \"Stainless Steel\",\n  \"strapMaterial\": \"Rubber\",\n  \"waterResistance\": \"200 meters\",\n  \"price\": 1500.00,\n  \"releaseDate\": \"{{today}}\",\n  \"stock\": 25\n}"
+            },
+            "url": "{{baseUrl}}/api/watches"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Saga completed', () => pm.expect(pm.response.headers.get('X-Saga-Status')).to.eql('COMPLETED'));",
+                  "pm.environment.set('watchId', pm.response.json().watchId);",
+                  "pm.environment.set('sagaOperationId', pm.response.headers.get('X-Saga-Operation-Id'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "New watch appears at the top",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/watches"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Created watch is first', () => pm.expect(String(pm.response.json()[0].watchId)).to.eql(pm.environment.get('watchId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject invalid price",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Invalid Price Watch\",\n  \"categoryId\": 1,\n  \"brandId\": 1,\n  \"caseMaterial\": \"Steel\",\n  \"strapMaterial\": \"Leather\",\n  \"waterResistance\": \"100 meters\",\n  \"price\": 99.99,\n  \"releaseDate\": \"{{today}}\",\n  \"stock\": 5\n}"
+            },
+            "url": "{{baseUrl}}/api/watches"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Price validation returned', () => pm.expect(pm.response.json().validationErrors.price).to.exist);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject Staff update",
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Staff Cannot Update\",\n  \"categoryId\": 2,\n  \"brandId\": 2,\n  \"caseMaterial\": \"Steel\",\n  \"strapMaterial\": \"Leather\",\n  \"waterResistance\": \"100 meters\",\n  \"price\": 2000.00,\n  \"releaseDate\": \"{{today}}\",\n  \"stock\": 10\n}"
+            },
+            "url": "{{baseUrl}}/api/watches/{{watchId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update watch and transfer brand",
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"QuanNT Updated Chronograph\",\n  \"categoryId\": 2,\n  \"brandId\": 2,\n  \"caseMaterial\": \"Stainless Steel\",\n  \"strapMaterial\": \"Leather\",\n  \"waterResistance\": \"100 meters\",\n  \"price\": 2500.00,\n  \"releaseDate\": \"{{today}}\",\n  \"stock\": 20\n}"
+            },
+            "url": "{{baseUrl}}/api/watches/{{watchId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Brand transferred to Omega', () => pm.expect(pm.response.json().brandId).to.eql(2));",
+                  "pm.environment.set('sagaOperationId', pm.response.headers.get('X-Saga-Operation-Id'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read Saga log",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/sagas/{{sagaOperationId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const saga = pm.response.json();",
+                  "pm.test('Saga status COMPLETED', () => pm.expect(saga.status).to.eql('COMPLETED'));",
+                  "pm.test('Saga contains step logs', () => pm.expect(saga.logs.length).to.be.above(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete watch as Administrator",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/watches/{{watchId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Saga completed', () => pm.expect(pm.response.headers.get('X-Saga-Status')).to.eql('COMPLETED'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
